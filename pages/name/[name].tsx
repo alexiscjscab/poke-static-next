@@ -1,24 +1,20 @@
-import React, { useState } from 'react';
-import { GetStaticPaths, GetStaticProps, NextPage } from 'next';
+import React, { FC, useState } from 'react';
+import { GetStaticPaths, GetStaticProps } from 'next';
 import { Button, Card, Container, Grid, Image, Text } from '@nextui-org/react';
-
 import confetti from 'canvas-confetti';
-
 import { pokeApi } from '../../api';
 import { Layout } from '../../components/layouts';
-import { Pokemon } from '../../interface';
+import { Pokemon, PokemonListResponse } from '../../interface';
 import { getPokemonInfo, localFavorites } from '../../utils';
 
 interface Props {
   pokemon: Pokemon;
 }
 
-const PokemonPage: NextPage<Props> = ({ pokemon }) => {
+const PokemonName: FC<Props> = ({ pokemon }) => {
   const [isInFavorites, setIsInFavorites] = useState(
     localFavorites.existInFavorites(pokemon.id)
   );
-
-  console.log(pokemon);
 
   const onToggleFavorite = () => {
     localFavorites.toogleFavorite(pokemon.id);
@@ -109,24 +105,29 @@ const PokemonPage: NextPage<Props> = ({ pokemon }) => {
   );
 };
 
-export default PokemonPage;
+export default PokemonName;
 
 export const getStaticPaths: GetStaticPaths = async (ctx) => {
-  const pokemons151: string[] = [...Array(151)].map(
-    (value, index) => `${index + 1}`
+  const { data } = await pokeApi.get<PokemonListResponse>(
+    '/pokemon/?limit=151'
   );
+
+  const pokemonNames: string[] = data.results.map((pokemon) => pokemon.name);
+
   return {
-    paths: pokemons151.map((id) => ({ params: { id } })),
-    fallback: false, // blocking lo deja pasar
+    paths: pokemonNames.map((name) => ({
+      params: { name },
+    })),
+    fallback: false,
   };
 };
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
-  const { id } = params as { id: string };
+  const { name } = params as { name: string };
 
   return {
     props: {
-      pokemon: await getPokemonInfo(id),
-    }, // will be passed to the page component as props
+      pokemon: await getPokemonInfo(name)
+    },
   };
 };
